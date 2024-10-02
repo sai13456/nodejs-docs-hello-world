@@ -27,7 +27,13 @@ steps:
     npm test
   displayName: 'Run Unit Tests'
 
-# Step 5: Publish build artifacts (optional)
+# Step 5: Copy necessary files to Artifact Staging Directory
+- script: |
+    mkdir -p $(Build.ArtifactStagingDirectory)
+    cp -R ./* $(Build.ArtifactStagingDirectory)
+  displayName: 'Copy files to Artifact Staging Directory'
+
+# Step 6: Publish build artifacts
 - task: PublishBuildArtifacts@1
   inputs:
     pathToPublish: '$(Build.ArtifactStagingDirectory)'
