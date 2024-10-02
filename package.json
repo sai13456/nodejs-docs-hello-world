@@ -10,6 +10,7 @@
         "lint": "eslint",
         "format": "prettier --single-quote --write *.js",
         "build": "echo 'No build step necessary'"
+        "test": "echo 'No tests available'"   
     },
     "devDependencies": {
         "eslint": "^7.5.0",
