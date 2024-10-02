@@ -9,7 +9,7 @@
         "start": "node index.js",
         "lint": "eslint",
         "format": "prettier --single-quote --write *.js",
-        "build": "echo 'No build step necessary'"
+        "build": "echo 'No build step necessary'",
         "test": "echo 'No tests available'"   
     },
     "devDependencies": {
