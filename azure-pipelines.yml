@@ -30,7 +30,7 @@ steps:
 # Step 5: Copy necessary files to Artifact Staging Directory
 - script: |
     mkdir -p $(Build.ArtifactStagingDirectory)
-    cp -R ./* $(Build.ArtifactStagingDirectory)
+    copy -R ./* $(Build.ArtifactStagingDirectory)
   displayName: 'Copy files to Artifact Staging Directory'
 
 # Step 6: Publish build artifacts
