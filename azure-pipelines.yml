@@ -1,15 +1,15 @@
 trigger:
-- main  # Trigger pipeline on main branch changes
+- main
 
 pool:
-  name: 'default'  # Use Microsoft-hosted agent (Ubuntu)
+  vmImage: 'ubuntu-latest'  # Use Linux agent to avoid Windows export issues
 
 variables:
-  azureSubscription: 'dot-testSC'  # Azure Service Connection
-  appName: 'web-plan'  # Azure App Service Name
-  resourceGroupName: 'dot-testRG'  # Azure Resource Group
-  slotName: 'Production'  # Deployment slot
-  nodeVersion: '20.x'  # Node.js version
+  azureSubscription: 'dot-testSC'
+  appName: 'web-plan'
+  resourceGroupName: 'dot-testRG'
+  slotName: 'Production'
+  nodeVersion: '20.x'
 
 steps:
 # Step 1: Install Node.js
@@ -18,60 +18,64 @@ steps:
     versionSpec: '$(nodeVersion)'
   displayName: 'Install Node.js'
 
-# Step 2: Fix SSL Certificate Issue (Permanent)
+# Step 2: Fix SSL Certificate Issue (Permanent for Linux/Mac)
 - script: |
     curl -o cacert.pem https://curl.se/ca/cacert.pem
-    export NODE_EXTRA_CA_CERTS=$(pwd)/cacert.pem
+    echo "NODE_EXTRA_CA_CERTS=$(pwd)/cacert.pem" >> $GITHUB_ENV
     echo "SSL certificate fixed"
   displayName: 'Fix SSL Certificates (Linux/Mac)'
+  condition: ne(variables['Agent.OS'], 'Windows_NT')  # Run only on Linux/Mac agents
 
+# Step 3: Fix SSL Certificate for Windows (cmd compatible)
 - script: |
     curl -o cacert.pem https://curl.se/ca/cacert.pem
     IF EXIST cacert.pem (
-      set NODE_EXTRA_CA_CERTS=%CD%\cacert.pem
+      echo "Certificate downloaded"
+      echo "set NODE_EXTRA_CA_CERTS=%CD%\cacert.pem" >> %GITHUB_ENV%
     ) ELSE (
       echo "Certificate download failed" && exit /b 1
     )
   displayName: 'Fix SSL Certificates (Windows)'
-  condition: eq(variables['Agent.OS'], 'Windows_NT')
+  condition: eq(variables['Agent.OS'], 'Windows_NT')  # Run only on Windows agents
 
-# Step 3: Bypass SSL Temporarily (Testing Only - Not for Production)
-- script: |
-    export NODE_TLS_REJECT_UNAUTHORIZED=0
-  displayName: 'Bypass SSL Verification (Linux/Mac)'
-
+# Step 4: Bypass SSL Temporarily (For Debugging Only)
 - script: |
     set NODE_TLS_REJECT_UNAUTHORIZED=0
   displayName: 'Bypass SSL Verification (Windows)'
   condition: eq(variables['Agent.OS'], 'Windows_NT')
 
-# Step 4: Install dependencies and build project
+- script: |
+    export NODE_TLS_REJECT_UNAUTHORIZED=0
+  displayName: 'Bypass SSL Verification (Linux/Mac)'
+  condition: ne(variables['Agent.OS'], 'Windows_NT')
+
+# Step 5: Install dependencies and build
 - script: |
     npm install
     npm run build
   displayName: 'Install Dependencies and Build'
 
-# Step 5: Lint the Code (Optional)
+# Step 6: Lint the Code
 - script: |
     npm run lint
   displayName: 'Run Linter'
 
-# Step 6: Run Unit Tests (Optional)
+# Step 7: Run Tests
 - script: |
     npm test
   displayName: 'Run Unit Tests'
 
-# Step 7: Archive Project Files for Deployment
+# Step 8: Archive Project Files
 - task: ArchiveFiles@2
   inputs:
-    rootFolderOrFile: '$(System.DefaultWorkingDirectory)'  
+    rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
     includeRootFolder: false
     archiveType: 'zip'
     archiveFile: '$(Build.ArtifactStagingDirectory)/app.zip'
     replaceExistingArchive: true
   displayName: 'Archive Application Files'
 
-# Step 8: Publish Artifact
+# Step 9: Publish Artifact
 - task: PublishBuildArtifacts@1
   inputs:
     pathToPublish: '$(Build.ArtifactStagingDirectory)/app.zip'
@@ -79,7 +83,7 @@ steps:
     publishLocation: 'Container'
   displayName: 'Publish Build Artifacts'
 
-# Step 9: Deploy to Azure App Service
+# Step 10: Deploy to Azure App Service
 - task: AzureWebApp@1
   inputs:
     azureSubscription: '$(azureSubscription)'
