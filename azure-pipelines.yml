@@ -2,7 +2,7 @@ trigger:
 - main
 
 pool:
-  vmImage: 'ubuntu-latest'  # Use Linux agent to avoid Windows export issues
+  name: 'default'  # Use Linux agent to avoid Windows export issues
 
 variables:
   azureSubscription: 'dot-testSC'
