@@ -2,7 +2,7 @@ trigger:
 - main  # Trigger pipeline on main branch changes
 
 pool:
-  vmImage: 'ubuntu-latest'  # Use Microsoft-hosted agent (Ubuntu)
+  vmImage: 'default'  # Use Microsoft-hosted agent (Ubuntu)
 
 variables:
   azureSubscription: 'dot-testSC'  # Azure Service Connection
