@@ -1,8 +1,8 @@
 trigger:
-- main
+- main  # Trigger pipeline on main branch changes
 
 pool:
-  name: 'default'  # Use Linux agent to avoid Windows export issues
+  name: default  # Use the default agent pool
 
 variables:
   azureSubscription: 'dot-testSC'
@@ -15,81 +15,71 @@ steps:
 # Step 1: Install Node.js
 - task: NodeTool@0
   inputs:
-    versionSpec: '$(nodeVersion)'
+    versionSpec: '20.x'
   displayName: 'Install Node.js'
 
-# Step 2: Fix SSL Certificate Issue (Permanent for Linux/Mac)
-- script: |
-    curl -o cacert.pem https://curl.se/ca/cacert.pem
-    echo "NODE_EXTRA_CA_CERTS=$(pwd)/cacert.pem" >> $GITHUB_ENV
-    echo "SSL certificate fixed"
-  displayName: 'Fix SSL Certificates (Linux/Mac)'
-  condition: ne(variables['Agent.OS'], 'Windows_NT')  # Run only on Linux/Mac agents
-
-# Step 3: Fix SSL Certificate for Windows (cmd compatible)
+# Step 2: Fix SSL Certificate Issue (Permanent Fix)
 - script: |
     curl -o cacert.pem https://curl.se/ca/cacert.pem
     IF EXIST cacert.pem (
-      echo "Certificate downloaded"
-      echo "set NODE_EXTRA_CA_CERTS=%CD%\cacert.pem" >> %GITHUB_ENV%
+      set NODE_EXTRA_CA_CERTS=%CD%\cacert.pem
     ) ELSE (
-      echo "Certificate download failed" && exit /b 1
+      echo "Certificate download failed"
+      exit /b 1
     )
-  displayName: 'Fix SSL Certificates (Windows)'
-  condition: eq(variables['Agent.OS'], 'Windows_NT')  # Run only on Windows agents
+  displayName: 'Fix SSL Certificates (Permanent)'
+  condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))
 
-# Step 4: Bypass SSL Temporarily (For Debugging Only)
+- script: |
+    curl -o cacert.pem https://curl.se/ca/cacert.pem
+    export NODE_EXTRA_CA_CERTS=$(pwd)/cacert.pem
+  displayName: 'Fix SSL Certificates (Permanent)'
+  condition: and(succeeded(), ne(variables['Agent.OS'], 'Windows_NT'))
+
+# Step 3: Temporary SSL Bypass (Testing Only)
 - script: |
     set NODE_TLS_REJECT_UNAUTHORIZED=0
-  displayName: 'Bypass SSL Verification (Windows)'
-  condition: eq(variables['Agent.OS'], 'Windows_NT')
+  displayName: 'Bypass SSL Verification (Temporary)'
+  condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))
 
 - script: |
     export NODE_TLS_REJECT_UNAUTHORIZED=0
-  displayName: 'Bypass SSL Verification (Linux/Mac)'
-  condition: ne(variables['Agent.OS'], 'Windows_NT')
+  displayName: 'Bypass SSL Verification (Temporary)'
+  condition: and(succeeded(), ne(variables['Agent.OS'], 'Windows_NT'))
 
-# Step 5: Install dependencies and build
+# Step 4: Install dependencies and build
 - script: |
     npm install
     npm run build
-  displayName: 'Install Dependencies and Build'
+  displayName: 'npm install and build'
 
-# Step 6: Lint the Code
+# Step 5: Run code linting (Optional)
 - script: |
     npm run lint
   displayName: 'Run Linter'
 
-# Step 7: Run Tests
+# Step 6: Run unit tests (Optional)
 - script: |
     npm test
   displayName: 'Run Unit Tests'
 
-# Step 8: Archive Project Files
-- task: ArchiveFiles@2
-  inputs:
-    rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
-    includeRootFolder: false
-    archiveType: 'zip'
-    archiveFile: '$(Build.ArtifactStagingDirectory)/app.zip'
-    replaceExistingArchive: true
-  displayName: 'Archive Application Files'
+# Step 7: Copy files to Artifact Staging Directory
+- script: |
+    mkdir $(Build.ArtifactStagingDirectory)
+    xcopy /E /I * $(Build.ArtifactStagingDirectory)
+  displayName: 'Copy files to Artifact Staging Directory'
+  condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))
 
-# Step 9: Publish Artifact
+- script: |
+    mkdir -p $(Build.ArtifactStagingDirectory)
+    cp -R * $(Build.ArtifactStagingDirectory)
+  displayName: 'Copy files to Artifact Staging Directory'
+  condition: and(succeeded(), ne(variables['Agent.OS'], 'Windows_NT'))
+
+# Step 8: Publish build artifacts
 - task: PublishBuildArtifacts@1
   inputs:
-    pathToPublish: '$(Build.ArtifactStagingDirectory)/app.zip'
+    pathToPublish: '$(Build.ArtifactStagingDirectory)'
     artifactName: 'drop'
     publishLocation: 'Container'
   displayName: 'Publish Build Artifacts'
-
-# Step 10: Deploy to Azure App Service
-- task: AzureWebApp@1
-  inputs:
-    azureSubscription: '$(azureSubscription)'
-    appName: '$(appName)'
-    package: '$(Build.ArtifactStagingDirectory)/app.zip'
-    deployToSlotOrASE: true
-    resourceGroupName: '$(resourceGroupName)'
-    slotName: '$(slotName)'
-  displayName: 'Deploy to Azure App Service'
