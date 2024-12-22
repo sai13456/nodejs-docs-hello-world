@@ -1,40 +1,50 @@
 trigger:
-- main
+- main  # Trigger pipeline on main branch changes
 
 pool:
-  name: default
-  #name: Hosted Agent
+  name: default  # Use the default agent pool
 
 steps:
 # Step 1: Install Node.js
 - task: NodeTool@0
   inputs:
-    versionSpec: '20.x'
+    versionSpec: '20.x'  # Install Node.js version 20.x
   displayName: 'Install Node.js'
 
-# Step 2: Install dependencies and build
+# Step 2: Fix SSL Certificate Issue (Optional - Permanent Fix)
+- script: |
+    curl -o cacert.pem https://curl.se/ca/cacert.pem
+    export NODE_EXTRA_CA_CERTS=$(System.DefaultWorkingDirectory)/cacert.pem
+  displayName: 'Fix SSL Certificates (Permanent)'
+
+# Step 3: Temporary SSL Bypass (For Testing Only)
+- script: |
+    export NODE_TLS_REJECT_UNAUTHORIZED=0
+  displayName: 'Bypass SSL Verification (Temporary)'
+
+# Step 4: Install dependencies and build
 - script: |
     npm install
     npm run build
   displayName: 'npm install and build'
 
-# Step 3: Run code linting (optional, for code quality checks)
+# Step 5: Run code linting (Optional)
 - script: |
     npm run lint
   displayName: 'Run Linter'
 
-# Step 4: Run tests (optional, based on your project setup)
+# Step 6: Run unit tests (Optional)
 - script: |
     npm test
   displayName: 'Run Unit Tests'
 
-# Step 5: Copy necessary files to Artifact Staging Directory
+# Step 7: Copy files to Artifact Staging Directory
 - script: |
     mkdir -p $(Build.ArtifactStagingDirectory)
     xcopy /E /I * $(Build.ArtifactStagingDirectory)
   displayName: 'Copy files to Artifact Staging Directory'
 
-# Step 6: Publish build artifacts
+# Step 8: Publish build artifacts
 - task: PublishBuildArtifacts@1
   inputs:
     pathToPublish: '$(Build.ArtifactStagingDirectory)'
