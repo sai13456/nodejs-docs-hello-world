@@ -6,8 +6,8 @@ pool:
 
 variables:
   azureSubscription: 'dot-testSC'
-  appName: 'web-plan'
-  resourceGroupName: 'dot-testRG'
+  appName: 'web-nodejs'
+  resourceGroupName: 'dot-resource'
   slotName: 'Production'
   nodeVersion: '20.x'
 
