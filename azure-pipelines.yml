@@ -1,15 +1,8 @@
 trigger:
-- main  # Trigger pipeline on main branch changes
+- main
 
 pool:
-  name: default  # Use the default agent pool
-
-variables:
-  azureSubscription: 'dot-testSC'
-  appName: 'web-nodejs'
-  resourceGroupName: 'dot-resource'
-  slotName: 'Production'
-  nodeVersion: '20.x'
+  name: default
 
 steps:
 # Step 1: Install Node.js
@@ -18,65 +11,29 @@ steps:
     versionSpec: '20.x'
   displayName: 'Install Node.js'
 
-# Step 2: Fix SSL Certificate Issue (Permanent Fix)
-- script: |
-    curl -o cacert.pem https://curl.se/ca/cacert.pem
-    IF EXIST cacert.pem (
-      set NODE_EXTRA_CA_CERTS=%CD%\cacert.pem
-    ) ELSE (
-      echo "Certificate download failed"
-      exit /b 1
-    )
-  displayName: 'Fix SSL Certificates (Permanent)'
-  condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))
-
-- script: |
-    curl -o cacert.pem https://curl.se/ca/cacert.pem
-    export NODE_EXTRA_CA_CERTS=$(pwd)/cacert.pem
-  displayName: 'Fix SSL Certificates (Permanent)'
-  condition: and(succeeded(), ne(variables['Agent.OS'], 'Windows_NT'))
-
-# Step 3: Temporary SSL Bypass (Testing Only)
-- script: |
-    set NODE_TLS_REJECT_UNAUTHORIZED=0
-  displayName: 'Bypass SSL Verification (Temporary)'
-  condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))
-
-- script: |
-    export NODE_TLS_REJECT_UNAUTHORIZED=0
-  displayName: 'Bypass SSL Verification (Temporary)'
-  condition: and(succeeded(), ne(variables['Agent.OS'], 'Windows_NT'))
-
-# Step 4: Install dependencies and build
+# Step 2: Install dependencies and build
 - script: |
     npm install
     npm run build
   displayName: 'npm install and build'
 
-# Step 5: Run code linting (Optional)
+# Step 3: Run code linting (optional, for code quality checks)
 - script: |
     npm run lint
   displayName: 'Run Linter'
 
-# Step 6: Run unit tests (Optional)
+# Step 4: Run tests (optional, based on your project setup)
 - script: |
     npm test
   displayName: 'Run Unit Tests'
 
-# Step 7: Copy files to Artifact Staging Directory
-- script: |
-    mkdir $(Build.ArtifactStagingDirectory)
-    xcopy /E /I * $(Build.ArtifactStagingDirectory)
-  displayName: 'Copy files to Artifact Staging Directory'
-  condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))
-
+# Step 5: Copy necessary files to Artifact Staging Directory
 - script: |
     mkdir -p $(Build.ArtifactStagingDirectory)
-    cp -R * $(Build.ArtifactStagingDirectory)
+    cp -R ./* $(Build.ArtifactStagingDirectory)
   displayName: 'Copy files to Artifact Staging Directory'
-  condition: and(succeeded(), ne(variables['Agent.OS'], 'Windows_NT'))
 
-# Step 8: Publish build artifacts
+# Step 6: Publish build artifacts
 - task: PublishBuildArtifacts@1
   inputs:
     pathToPublish: '$(Build.ArtifactStagingDirectory)'
