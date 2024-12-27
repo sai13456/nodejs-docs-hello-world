@@ -2,38 +2,49 @@ trigger:
 - main
 
 pool:
-  name: default
+  vmImage: 'ubuntu-latest'  # Use a clean agent image to avoid corrupted environments
 
 steps:
-# Step 1: Install Node.js
-- task: NodeTool@0
+# Step 1: Clear Node.js Cache (Fix for 7zr.exe Error)
+- script: |
+    rm -rf $(Agent.ToolsDirectory)/NodeJs
+  displayName: 'Clear Node.js Cache'
+
+# Step 2: Install Node.js (Switch between NodeTool versions if necessary)
+- task: NodeTool@1  # Try NodeTool@1 first
   inputs:
     versionSpec: '20.x'
   displayName: 'Install Node.js'
 
-# Step 2: Install dependencies and build
+# Step 3: Verify Node.js Installation (Diagnostics)
+- script: |
+    node --version
+    npm --version
+  displayName: 'Verify Node.js and npm Installation'
+
+# Step 4: Install Dependencies and Build
 - script: |
     npm install
     npm run build
   displayName: 'npm install and build'
 
-# Step 3: Run code linting (optional)
+# Step 5: Run Linting (Optional)
 - script: |
     npm run lint
   displayName: 'Run Linter'
 
-# Step 4: Run tests (optional)
+# Step 6: Run Tests (Optional)
 - script: |
     npm test
   displayName: 'Run Unit Tests'
 
-# Step 5: Copy necessary files to Artifact Staging Directory
+# Step 7: Copy Files to Artifact Staging Directory
 - script: |
     mkdir -p $(Build.ArtifactStagingDirectory)
     cp -R ./ $(Build.ArtifactStagingDirectory)/
   displayName: 'Copy files to Artifact Staging Directory'
 
-# Step 6: Publish build artifacts
+# Step 8: Publish Build Artifacts
 - task: PublishBuildArtifacts@1
   inputs:
     pathToPublish: '$(Build.ArtifactStagingDirectory)'
