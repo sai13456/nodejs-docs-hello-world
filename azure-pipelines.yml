@@ -2,7 +2,7 @@ trigger:
 - main
 
 pool:
-  vmImage: 'windows-latest'  # Use Windows agent
+  name: 'default'  # Use Windows agent
 
 steps:
 # Step 1: Clear Node.js Cache (Windows Version)
