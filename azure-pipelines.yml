@@ -2,7 +2,7 @@ trigger:
 - main
 
 pool:
-  vmImage: 'ubuntu-latest'  # Use a clean agent image to avoid corrupted environments
+  vmImage: 'default'  # Use a clean agent image to avoid corrupted environments
 
 steps:
 # Step 1: Clear Node.js Cache (Fix for 7zr.exe Error)
