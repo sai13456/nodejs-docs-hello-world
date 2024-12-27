@@ -17,12 +17,12 @@ steps:
     npm run build
   displayName: 'npm install and build'
 
-# Step 3: Run code linting (optional, for code quality checks)
+# Step 3: Run code linting (optional)
 - script: |
     npm run lint
   displayName: 'Run Linter'
 
-# Step 4: Run tests (optional, based on your project setup)
+# Step 4: Run tests (optional)
 - script: |
     npm test
   displayName: 'Run Unit Tests'
@@ -30,7 +30,7 @@ steps:
 # Step 5: Copy necessary files to Artifact Staging Directory
 - script: |
     mkdir -p $(Build.ArtifactStagingDirectory)
-    cp -R ./* $(Build.ArtifactStagingDirectory)
+    cp -R ./ $(Build.ArtifactStagingDirectory)/
   displayName: 'Copy files to Artifact Staging Directory'
 
 # Step 6: Publish build artifacts
