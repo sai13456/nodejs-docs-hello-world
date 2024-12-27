@@ -16,7 +16,7 @@ steps:
   displayName: 'Clear Node.js Cache (Windows)'
 
 # Step 2: Install Node.js
-- task: NodeTool@1  # Use NodeTool@1 or @0 if necessary
+- task: NodeTool@0  # Use NodeTool@1 or @0 if necessary
   inputs:
     versionSpec: '20.x'
   displayName: 'Install Node.js'
