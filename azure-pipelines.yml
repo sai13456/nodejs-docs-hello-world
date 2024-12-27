@@ -2,10 +2,10 @@ trigger:
 - main
 
 pool:
-  vmImage: 'default'  # Use a clean agent image to avoid corrupted environments
+  name: 'default'  # Use a clean agent image to avoid corrupted environments
 
 steps:
-# Step 1: Clear Node.js Cache (Fix for 7zr.exe Error)
+#Step 1: Clear Node.js Cache (Fix for 7zr.exe Error)
 - script: |
     rm -rf $(Agent.ToolsDirectory)/NodeJs
   displayName: 'Clear Node.js Cache'
